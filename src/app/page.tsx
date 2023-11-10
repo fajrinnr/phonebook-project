@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pagination } from "antd";
 import { gql, useQuery } from "@apollo/client";
 
@@ -9,8 +9,18 @@ import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 
 const query = gql`
-  query contact_aggregate($limit: Int, $offset: Int, $where: contact_bool_exp) {
-    contact_aggregate(limit: $limit, offset: $offset, where: $where) {
+  query contact_aggregate(
+    $limit: Int
+    $offset: Int
+    $where: contact_bool_exp
+    $order_by: [contact_order_by!]
+  ) {
+    contact_aggregate(
+      limit: $limit
+      offset: $offset
+      where: $where
+      order_by: { first_name: asc }
+    ) {
       aggregate {
         max {
           first_name
@@ -73,6 +83,10 @@ export default function Home() {
       setContacts(result);
     },
   });
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   return (
     <div>
