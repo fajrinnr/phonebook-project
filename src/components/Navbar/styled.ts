@@ -6,3 +6,8 @@ export const StyledContainer = styled.div`
   align-items: center;
   padding: 30px 15px;
 `;
+
+export const StyledAddConContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;

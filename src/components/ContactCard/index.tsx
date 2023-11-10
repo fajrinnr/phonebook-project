@@ -1,13 +1,26 @@
 "use client";
+import { useRouter } from "next/navigation";
 import {
   StarOutlined,
   StarFilled,
   DownOutlined,
   EditFilled,
   DeleteFilled,
+  BarsOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Dropdown, MenuProps } from "antd";
+import { Avatar, Button, Dropdown, MenuProps, message } from "antd";
 import { StyledContainer, StyledContainerContact } from "./styled";
+import { gql, useMutation } from "@apollo/client";
+
+const mutation = gql`
+  mutation delete_contact($where: contact_bool_exp!) {
+    delete_contact(where: $where) {
+      returning {
+        id
+      }
+    }
+  }
+`;
 
 interface ContactCardProps {
   data: {
@@ -18,24 +31,61 @@ interface ContactCardProps {
       number: number;
     }[];
   };
+  onChangeFav?: () => void;
+  onDelete?: () => void;
 }
 
-export default function ContactCard(
-  props = {
-    data: {
-      first_name: "",
-      last_name: "",
-      id: 0,
-      phones: [{ number: 0 }],
+export default function ContactCard(props: ContactCardProps) {
+  const {
+    data: { first_name = "", last_name = "", id = 0, phones = [{ number: 0 }] },
+    onChangeFav = () => null,
+    onDelete = () => null,
+  } = props;
+  const router = useRouter();
+  const [deleteContact, { error, data }] = useMutation(mutation, {
+    variables: {
+      where: {
+        id: {
+          _eq: id,
+        },
+      },
     },
-  }
-) {
+    onCompleted: () => {
+      if (router) router.refresh();
+    },
+  });
+
+  const favorited = JSON.parse(
+    localStorage.getItem("favoritesContact") || "[]"
+  ).includes(id);
+
   const items: MenuProps["items"] = [
     {
-      label: "Add to Favorites",
+      label: favorited ? "Remove from Favorites" : "Add to Favorites",
       key: "1",
-      icon: <StarFilled style={{ color: "#F5E9A9" }} />,
-      onClick: () => console.log("Add to Favorite"),
+      icon: favorited ? (
+        <StarOutlined style={{ color: "#F5E9A9" }} />
+      ) : (
+        <StarFilled style={{ color: "#F5E9A9" }} />
+      ),
+      onClick: () => {
+        const favoritesContact = JSON.parse(
+          localStorage.getItem("favoritesContact") as string
+        );
+        if (favorited) {
+          const newArr = favoritesContact?.filter(
+            (contact: any) => contact !== id
+          );
+          localStorage.setItem("favoritesContact", JSON.stringify(newArr));
+          message.success("Successfully remove contact to favorite!");
+        } else {
+          const newArr = favoritesContact || [];
+          newArr.push(id);
+          localStorage.setItem("favoritesContact", JSON.stringify(newArr));
+          message.success("Successfully add contact to favorite!");
+        }
+        onChangeFav();
+      },
     },
     {
       type: "divider",
@@ -54,7 +104,15 @@ export default function ContactCard(
       key: "3",
       icon: <DeleteFilled />,
       danger: true,
-      onClick: () => console.log("Delete"),
+      onClick: async () => {
+        try {
+          await deleteContact();
+          message.success(
+            `Successfully delete ${first_name} ${last_name} from contacts`
+          );
+          onDelete();
+        } catch (error) {}
+      },
     },
   ];
   return (
@@ -67,19 +125,16 @@ export default function ContactCard(
         }}
         size={45}
       >
-        {props.data.first_name[0].toUpperCase()}
+        {first_name[0].toUpperCase()}
       </Avatar>
       <StyledContainerContact>
         <div>
-          <p>{`${props.data.first_name} ${props.data.last_name}`}</p>
-          <span>{props.data.phones[0].number}</span>
+          <p>{`${first_name} ${last_name}`}</p>
+          <span>{phones[0].number}</span>
         </div>
-        {/* <StarOutlined style={{ fontSize: "25px" }} /> */}
+
         <Dropdown menu={{ items }}>
-          <Button>
-            Actions
-            <DownOutlined />
-          </Button>
+          <Button shape="circle" icon={<BarsOutlined />} />
         </Dropdown>
       </StyledContainerContact>
     </StyledContainer>
