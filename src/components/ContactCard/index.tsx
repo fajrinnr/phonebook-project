@@ -3,7 +3,6 @@ import { useRouter } from "next/navigation";
 import {
   StarOutlined,
   StarFilled,
-  DownOutlined,
   EditFilled,
   DeleteFilled,
   BarsOutlined,
@@ -11,8 +10,10 @@ import {
 import { Avatar, Button, Dropdown, MenuProps, message } from "antd";
 import { StyledContainer, StyledContainerContact } from "./styled";
 import { gql, useMutation } from "@apollo/client";
+import { useContext } from "react";
+import { ContactContext } from "@/context/updateContactContext";
 
-const mutation = gql`
+const DELETE_CONTACT_MUTATION = gql`
   mutation delete_contact($where: contact_bool_exp!) {
     delete_contact(where: $where) {
       returning {
@@ -28,7 +29,8 @@ interface ContactCardProps {
     last_name: string;
     id: number;
     phones: {
-      number: number;
+      number?: string;
+      id?: number;
     }[];
   };
   onChangeFav?: () => void;
@@ -37,12 +39,13 @@ interface ContactCardProps {
 
 export default function ContactCard(props: ContactCardProps) {
   const {
-    data: { first_name = "", last_name = "", id = 0, phones = [{ number: 0 }] },
+    data: { first_name = "", last_name = "", id = 0, phones = [{}] },
     onChangeFav = () => null,
     onDelete = () => null,
   } = props;
   const router = useRouter();
-  const [deleteContact, { error, data }] = useMutation(mutation, {
+  const { handleDataContact } = useContext(ContactContext);
+  const [deleteContact] = useMutation(DELETE_CONTACT_MUTATION, {
     variables: {
       where: {
         id: {
@@ -51,7 +54,7 @@ export default function ContactCard(props: ContactCardProps) {
       },
     },
     onCompleted: () => {
-      if (router) router.refresh();
+      router.refresh();
     },
   });
 
@@ -91,10 +94,17 @@ export default function ContactCard(props: ContactCardProps) {
       type: "divider",
     },
     {
-      label: "Update",
+      label: "Edit",
       key: "2",
       icon: <EditFilled />,
-      onClick: () => console.log("Update"),
+      onClick: async () => {
+        await handleDataContact({
+          first_name,
+          last_name,
+          phones,
+        });
+        router.push(`/edit-contact/${id}`);
+      },
     },
     {
       type: "divider",
@@ -125,12 +135,16 @@ export default function ContactCard(props: ContactCardProps) {
         }}
         size={45}
       >
-        {first_name[0].toUpperCase()}
+        {first_name[0]?.toUpperCase()}
       </Avatar>
       <StyledContainerContact>
         <div>
           <p>{`${first_name} ${last_name}`}</p>
-          <span>{phones[0].number}</span>
+          <span className="phones">
+            {phones.length > 1
+              ? `${phones[0]?.number}, +${phones.length - 1} more`
+              : phones[0]?.number}
+          </span>
         </div>
 
         <Dropdown menu={{ items }}>

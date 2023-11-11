@@ -6,7 +6,28 @@ import { StyledAddConContainer, StyledForm } from "./styled";
 import { gql, useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
 
-const mutation = gql`
+interface FormContactProps {
+  typeForm: "add" | "update";
+  dataContact?: {
+    first_name: string;
+    last_name: string;
+    phones: {
+      number: string;
+      id?: number;
+    }[];
+  };
+  contactId?: string;
+}
+
+interface FormValues {
+  first_name: string;
+  last_name: string;
+  phones: {
+    number: string;
+  }[];
+}
+
+const ADD_CONTACT_MUTATION = gql`
   mutation insert_contact($objects: [contact_insert_input!]!) {
     insert_contact(objects: $objects) {
       returning {
@@ -17,36 +38,44 @@ const mutation = gql`
   }
 `;
 
-export default function FormContact() {
+const UPDATE_CONTACT_MUTATION = gql`
+  mutation update_contact($_set: contact_set_input, $where: contact_bool_exp!) {
+    update_contact(_set: $_set, where: $where) {
+      returning {
+        id
+      }
+    }
+  }
+`;
+
+export default function FormContact(props: FormContactProps) {
+  const { typeForm, dataContact, contactId } = props;
   const [form] = Form.useForm();
   const router = useRouter();
-  const [addContact, { loading }] = useMutation(mutation, {
-    onCompleted: () => {
-      message.success(
-        `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
-      );
-      router.push("/");
-    },
-  });
+  const [addContact, { loading: loadingAdd }] = useMutation(
+    ADD_CONTACT_MUTATION,
+    {
+      onCompleted: () => {
+        message.success(
+          `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
+        );
+        router.push("/");
+      },
+    }
+  );
+  const [updateContact, { loading: loadingUpdate }] = useMutation(
+    UPDATE_CONTACT_MUTATION,
+    {
+      onCompleted: () => {
+        message.success(
+          `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
+        );
+        router.push("/");
+      },
+    }
+  );
   const [submittable, setSubmittable] = useState(false);
   const values = Form.useWatch([], form);
-  const formItemLayout = {
-    labelCol: {
-      xs: { span: 24 },
-      sm: { span: 4 },
-    },
-    wrapperCol: {
-      xs: { span: 24 },
-      sm: { span: 20 },
-    },
-  };
-
-  const formItemLayoutWithOutLabel = {
-    wrapperCol: {
-      xs: { span: 24, offset: 0 },
-      sm: { span: 20, offset: 4 },
-    },
-  };
 
   useEffect(() => {
     form.validateFields({ validateOnly: true }).then(
@@ -59,11 +88,17 @@ export default function FormContact() {
     );
   }, [form, values]);
 
-  return (
-    <StyledForm
-      form={form}
-      name="dynamic_form_item"
-      onFinish={(values: any) => {
+  const typeFormValue = {
+    add: {
+      titlePage: "Add Contact",
+      buttonSubmit: "Save",
+      defValAvatar: values && values?.first_name?.[0]?.toUpperCase(),
+      defValFName: null,
+      defValLName: null,
+      defValPhones: [""],
+      disablePhoneNumber: false,
+      loadingSubmit: loadingAdd,
+      submitAction: (values: FormValues) =>
         addContact({
           variables: {
             objects: {
@@ -74,7 +109,38 @@ export default function FormContact() {
               },
             },
           },
-        });
+        }),
+    },
+    update: {
+      titlePage: "Edit Contact",
+      buttonSubmit: "Update",
+      defValAvatar: dataContact?.first_name?.[0],
+      defValFName: dataContact?.first_name,
+      defValLName: dataContact?.last_name,
+      defValPhones: dataContact?.phones.map((data) => data),
+      disablePhoneNumber: true,
+      loadingSubmit: loadingUpdate,
+      submitAction: (values: FormValues) =>
+        updateContact({
+          variables: {
+            _set: {
+              first_name: values.first_name,
+              last_name: values.last_name,
+            },
+            where: {
+              id: { _eq: Number(contactId) },
+            },
+          },
+        }),
+    },
+  };
+
+  return (
+    <StyledForm
+      form={form}
+      layout="vertical"
+      onFinish={(values: any) => {
+        typeFormValue[typeForm].submitAction(values);
       }}
     >
       <StyledAddConContainer>
@@ -85,15 +151,17 @@ export default function FormContact() {
         >
           Cancel
         </Button>
-        <h1 style={{ fontSize: "20px" }}>Add Contact</h1>
+        <h1 style={{ fontSize: "20px" }}>
+          {typeFormValue[typeForm].titlePage}
+        </h1>
         <Button
           type="link"
           htmlType="submit"
           disabled={!submittable}
           style={{ padding: 0, fontSize: "17px", fontWeight: "600" }}
-          loading={loading}
+          loading={typeFormValue[typeForm].loadingSubmit}
         >
-          Save
+          {typeFormValue[typeForm].buttonSubmit}
         </Button>
       </StyledAddConContainer>
       <div style={{ display: "flex", justifyContent: "center" }}>
@@ -106,29 +174,34 @@ export default function FormContact() {
           }}
           size={150}
         >
-          {values && values?.first_name?.[0]?.toUpperCase()}
+          {typeFormValue[typeForm].defValAvatar}
         </Avatar>
       </div>
       <Form.Item
         name="first_name"
         label="First Name"
         rules={[{ required: true, message: "Please input first name." }]}
+        initialValue={typeFormValue[typeForm].defValFName}
       >
-        <Input placeholder="Input first name" />
+        <Input placeholder="Input first name" size="large" />
       </Form.Item>
       <Form.Item
         name="last_name"
         label="Last Name"
         rules={[{ required: true, message: "Please input last name." }]}
+        initialValue={typeFormValue[typeForm].defValLName}
       >
-        <Input placeholder="Input last name" />
+        <Input placeholder="Input last name" size="large" />
       </Form.Item>
-      <Form.List name="phones" initialValue={[""]}>
+      <Form.List
+        name="phones"
+        initialValue={typeFormValue[typeForm].defValPhones}
+      >
         {(fields, { add, remove }) => (
-          <div>
+          <div style={{ width: "100%" }}>
             {fields.map((field, index) => (
-              <div key={field.key} style={{ display: "flex" }}>
-                {index >= 1 ? (
+              <div key={field.key} style={{ display: "flex", width: "100%" }}>
+                {index >= 1 && !typeFormValue[typeForm].disablePhoneNumber ? (
                   <CloseCircleFilled
                     className="dynamic-delete-button"
                     onClick={() => remove(field.name)}
@@ -141,9 +214,6 @@ export default function FormContact() {
                   />
                 ) : null}
                 <Form.Item
-                  {...(index === 0
-                    ? formItemLayout
-                    : formItemLayoutWithOutLabel)}
                   label={index === 0 ? "Phones" : ""}
                   required
                   name={[field.name, "number"]}
@@ -161,20 +231,29 @@ export default function FormContact() {
                   style={{ width: "100%" }}
                 >
                   <Input
-                    type="number"
                     placeholder={
                       index >= 1
                         ? `Input phone number ${index + 1}`
                         : "Input phone number"
                     }
+                    size="large"
+                    disabled={typeFormValue[typeForm].disablePhoneNumber}
                   />
                 </Form.Item>
               </div>
             ))}
 
-            <Button type="dashed" onClick={() => add()} block>
-              + Add Phone Number
-            </Button>
+            {!typeFormValue[typeForm].disablePhoneNumber && (
+              <Button
+                type="primary"
+                onClick={() => add()}
+                block
+                size="large"
+                style={{ backgroundColor: "#007BFE !important" }}
+              >
+                + Add Phone Number
+              </Button>
+            )}
           </div>
         )}
       </Form.List>

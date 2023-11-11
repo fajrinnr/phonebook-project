@@ -13,7 +13,12 @@ export default function Navbar(props: NavbarProps) {
       <h1>{props.title}</h1>
       {props.onClick && (
         <PlusCircleFilled
-          style={{ fontSize: "40px" }}
+          style={{
+            fontSize: "40px",
+            color: "#007BFE",
+            backgroundColor: "#ffffff",
+            borderRadius: "100%",
+          }}
           onClick={props.onClick}
         />
       )}

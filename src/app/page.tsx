@@ -1,14 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Pagination } from "antd";
 import { gql, useQuery } from "@apollo/client";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import ContactCard from "@/components/ContactCard";
 import ContactFilter from "@/components/ContactFilter";
 import Navbar from "@/components/Navbar";
-import { useRouter } from "next/navigation";
+import StyledPagination from "@/components/Pagination";
 
-const query = gql`
+const GET_CONTACT_QUERY = gql`
   query contact_aggregate(
     $limit: Int
     $offset: Int
@@ -53,11 +53,12 @@ const query = gql`
 
 export default function Home() {
   const router = useRouter();
-  const [contacts, setContacts] = useState<any>({});
-  const [offset, setOffset] = useState({
-    from: 0,
-    to: 10,
-  });
+  const searchParams = useSearchParams();
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const keyword = searchParams.get("keyword");
+  const category = searchParams.get("category");
+  const [contacts, setContacts] = useState<any>({ general: [], favorites: [] });
+
   const helper = (res: any) => {
     const dataArr = res.contact_aggregate.nodes || [];
     const favoritesArr = JSON.parse(
@@ -77,7 +78,7 @@ export default function Home() {
 
     return result;
   };
-  const { data, loading, refetch } = useQuery(query, {
+  const { data, loading, refetch } = useQuery(GET_CONTACT_QUERY, {
     onCompleted: (value) => {
       const result = helper(value);
       setContacts(result);
@@ -85,13 +86,46 @@ export default function Home() {
   });
 
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (category === "name" && typeof keyword === "string") {
+      refetch({
+        where: {
+          _or: [
+            {
+              first_name: {
+                _iregex: keyword.split(" ")[0] as string,
+              },
+            },
+            {
+              last_name: {
+                _iregex: keyword.split(" ").pop(),
+              },
+            },
+          ],
+        },
+      });
+    } else if (category === "phone" && typeof keyword === "string") {
+      refetch({
+        where: {
+          phones: {
+            number: {
+              _iregex: keyword,
+            },
+          },
+        },
+      });
+    } else {
+      refetch();
+    }
+  }, [category, keyword, refetch]);
 
   return (
     <div>
       <Navbar onClick={() => router.push("/add-contact")} title="Phone Book" />
       <ContactFilter
+        defVal={{
+          keyword,
+          category,
+        }}
         onSearch={async (res) => {
           const whereCondition =
             res.category === "name"
@@ -111,8 +145,12 @@ export default function Home() {
 
           await refetch({ where: whereCondition }).then((value) => {
             const result = helper(value.data);
-            setOffset({ from: 0, to: 10 });
             setContacts(result);
+            if (res.value) {
+              router.push(`/?keyword=${res.value}&category=${res.category}`);
+            } else {
+              router.push(`/`);
+            }
           });
         }}
       />
@@ -142,30 +180,39 @@ export default function Home() {
             </>
           )}
           Regular Contacts
-          {contacts.general?.slice(offset.from, offset.to).map((val: any) => (
-            <ContactCard
-              data={val}
-              key={val.id}
-              onChangeFav={() =>
-                refetch().then((value) => {
-                  const result = helper(value.data);
-                  setContacts(result);
-                })
-              }
-              onDelete={() =>
-                refetch().then((value) => {
-                  const result = helper(value.data);
-                  setContacts(result);
-                })
-              }
-            />
-          ))}
+          {contacts.general
+            ?.slice((currentPage - 1) * 10, currentPage * 10)
+            .map((val: any) => (
+              <ContactCard
+                data={val}
+                key={val.id}
+                onChangeFav={() =>
+                  refetch().then((value) => {
+                    const result = helper(value.data);
+                    setContacts(result);
+                  })
+                }
+                onDelete={() =>
+                  refetch().then((value) => {
+                    const result = helper(value.data);
+                    setContacts(result);
+                  })
+                }
+              />
+            ))}
           {data?.contact_aggregate.aggregate.count > 10 && (
-            <Pagination
+            <StyledPagination
+              current={currentPage}
               style={{ textAlign: "right" }}
-              total={data?.contact_aggregate.aggregate.count}
+              total={contacts.general.length}
               onChange={(page) => {
-                setOffset({ from: (page - 1) * 10, to: page * 10 });
+                if (keyword) {
+                  router.push(
+                    `/?page=${page}&keyword=${keyword}&category=${category}`
+                  );
+                } else {
+                  router.push(`/?page=${page}`);
+                }
               }}
             />
           )}
