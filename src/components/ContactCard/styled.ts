@@ -11,6 +11,7 @@ export const StyledContainer = styled.div`
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
   border-radius: 20px;
   margin: 20px 0;
+  cursor: pointer;
 `;
 
 export const StyledContainerContact = styled.div`

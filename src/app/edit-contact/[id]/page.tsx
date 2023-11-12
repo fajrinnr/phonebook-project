@@ -1,31 +1,15 @@
 "use client";
-
-import FormContact from "@/components/FormContact";
-import { gql, useQuery } from "@apollo/client";
 import { useEffect } from "react";
 
-const UPDATE_CONTACT_MUTATION = gql`
-  query contact_by_pk($id: Int!) {
-    contact_by_pk(id: $id) {
-      first_name
-      last_name
-      phones {
-        number
-      }
-    }
-  }
-`;
+import FormContact from "@/components/FormContact";
+import useQueryGetContact from "@/hooks/useQueryGetContact";
 
 export default function UpdateContact({ params }: { params: { id: string } }) {
   const {
     data: dataContact,
     loading,
     refetch,
-  } = useQuery(UPDATE_CONTACT_MUTATION, {
-    variables: {
-      id: params.id,
-    },
-  });
+  } = useQueryGetContact({ variables: { id: params.id } });
 
   useEffect(() => {
     refetch();

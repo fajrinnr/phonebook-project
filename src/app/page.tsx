@@ -1,122 +1,71 @@
 "use client";
-import { useEffect, useState } from "react";
-import { gql, useQuery } from "@apollo/client";
+import { useContext, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import ContactCard from "@/components/ContactCard";
 import ContactFilter from "@/components/ContactFilter";
 import Navbar from "@/components/Navbar";
 import StyledPagination from "@/components/Pagination";
-
-const GET_CONTACT_QUERY = gql`
-  query contact_aggregate(
-    $limit: Int
-    $offset: Int
-    $where: contact_bool_exp
-    $order_by: [contact_order_by!]
-  ) {
-    contact_aggregate(
-      limit: $limit
-      offset: $offset
-      where: $where
-      order_by: { first_name: asc }
-    ) {
-      aggregate {
-        max {
-          first_name
-          last_name
-        }
-        min {
-          first_name
-          last_name
-        }
-        avg {
-          id
-        }
-        sum {
-          id
-        }
-        count
-      }
-      nodes {
-        first_name
-        last_name
-        id
-        phones {
-          number
-          id
-        }
-      }
-    }
-  }
-`;
+import { ContactContext } from "@/context/ContactContext";
+import useQueryGetContacts from "@/hooks/useQueryGetContacts";
+import { getCategoriesContact } from "@/helpers";
 
 export default function Home() {
+  //#region HOOKS
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { dataContact, handleDataContact } = useContext(ContactContext);
+  const { data, loading, refetch } = useQueryGetContacts({
+    onCompleted: (value) => {
+      const result = getCategoriesContact(value);
+      handleDataContact(result);
+    },
+  });
+  //#endregion HOOKS
+
+  //#region CONSTANTS
   const currentPage = Number(searchParams.get("page")) || 1;
   const keyword = searchParams.get("keyword");
   const category = searchParams.get("category");
-  const [contacts, setContacts] = useState<any>({ general: [], favorites: [] });
-
-  const helper = (res: any) => {
-    const dataArr = res.contact_aggregate.nodes || [];
-    const favoritesArr = JSON.parse(
-      localStorage.getItem("favoritesContact") || "[]"
-    );
-    const result = dataArr.reduce(
-      (current: any, next: any) => {
-        if (favoritesArr.includes(next.id)) {
-          current.favorite.push(next);
-        } else {
-          current.general.push(next);
-        }
-        return current;
+  const getVariableQuery = (query: string) => ({
+    name: {
+      _or: [
+        { first_name: { _iregex: query.split(" ")[0] } },
+        { last_name: { _iregex: query.split(" ").pop() } },
+      ],
+    },
+    phone: {
+      phones: {
+        number: {
+          _iregex: query,
+        },
       },
-      { favorite: [], general: [] }
-    );
-
-    return result;
-  };
-  const { data, loading, refetch } = useQuery(GET_CONTACT_QUERY, {
-    onCompleted: (value) => {
-      const result = helper(value);
-      setContacts(result);
     },
   });
+  //#endregion CONSTANTS
 
+  //#region HANDLER
+  const refreshContactData = async () => {
+    try {
+      const { data } = await refetch();
+      const result = getCategoriesContact(data);
+      handleDataContact(result);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  //#region LIFECYCLE
   useEffect(() => {
-    if (category === "name" && typeof keyword === "string") {
+    if (typeof keyword === "string") {
       refetch({
-        where: {
-          _or: [
-            {
-              first_name: {
-                _iregex: keyword.split(" ")[0] as string,
-              },
-            },
-            {
-              last_name: {
-                _iregex: keyword.split(" ").pop(),
-              },
-            },
-          ],
-        },
-      });
-    } else if (category === "phone" && typeof keyword === "string") {
-      refetch({
-        where: {
-          phones: {
-            number: {
-              _iregex: keyword,
-            },
-          },
-        },
+        where: getVariableQuery(keyword)[category as "name" | "phone"],
       });
     } else {
       refetch();
     }
   }, [category, keyword, refetch]);
+  //#endregion LIFECYCLE
 
   return (
     <div>
@@ -127,84 +76,53 @@ export default function Home() {
           category,
         }}
         onSearch={async (res) => {
-          const whereCondition =
-            res.category === "name"
-              ? {
-                  _or: [
-                    { first_name: { _iregex: res.value.split(" ")[0] } },
-                    { last_name: { _iregex: res.value.split(" ").pop() } },
-                  ],
-                }
-              : {
-                  phones: {
-                    number: {
-                      _iregex: res.value,
-                    },
-                  },
-                };
-
-          await refetch({ where: whereCondition }).then((value) => {
-            const result = helper(value.data);
-            setContacts(result);
+          const whereCondition = getVariableQuery(res.value)[res.category];
+          try {
+            const { data } = await refetch({ where: whereCondition });
+            const result = getCategoriesContact(data);
+            handleDataContact(result);
             if (res.value) {
               router.push(`/?keyword=${res.value}&category=${res.category}`);
             } else {
               router.push(`/`);
             }
-          });
+          } catch (error) {
+            console.error(error);
+          }
         }}
       />
       {!loading ? (
         <>
-          {contacts.favorite?.length > 0 && (
+          {dataContact.favorites?.length > 0 && (
             <>
               Favorites
-              {contacts.favorite?.map((val: any) => (
+              {dataContact.favorites?.map((val: any) => (
                 <ContactCard
                   data={val}
                   key={val.id}
-                  onChangeFav={() =>
-                    refetch().then((value) => {
-                      const result = helper(value.data);
-                      setContacts(result);
-                    })
-                  }
-                  onDelete={() =>
-                    refetch().then((value) => {
-                      const result = helper(value.data);
-                      setContacts(result);
-                    })
-                  }
+                  onChangeFav={refreshContactData}
+                  onDelete={refreshContactData}
+                  onClick={() => router.push(`/detail/${val.id}`)}
                 />
               ))}
             </>
           )}
           Regular Contacts
-          {contacts.general
+          {dataContact.general
             ?.slice((currentPage - 1) * 10, currentPage * 10)
             .map((val: any) => (
               <ContactCard
                 data={val}
                 key={val.id}
-                onChangeFav={() =>
-                  refetch().then((value) => {
-                    const result = helper(value.data);
-                    setContacts(result);
-                  })
-                }
-                onDelete={() =>
-                  refetch().then((value) => {
-                    const result = helper(value.data);
-                    setContacts(result);
-                  })
-                }
+                onChangeFav={refreshContactData}
+                onDelete={refreshContactData}
               />
             ))}
           {data?.contact_aggregate.aggregate.count > 10 && (
             <StyledPagination
               current={currentPage}
               style={{ textAlign: "right" }}
-              total={contacts.general.length}
+              total={dataContact.general.length}
               onChange={(page) => {
                 if (keyword) {
                   router.push(

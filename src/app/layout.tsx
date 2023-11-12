@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import StyledComponentsRegistry from "@/lib/AntdRegistry";
 import { ApolloWrapper } from "./ApolloWrapper";
-import ContactProvider from "@/context/updateContactContext";
+import ContactProvider from "@/context/ContactContext";
 
 const inter = Inter({ subsets: ["latin"] });
 

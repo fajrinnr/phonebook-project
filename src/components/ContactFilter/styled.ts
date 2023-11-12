@@ -28,6 +28,7 @@ export const StyledSelect = styled(Select)`
   .ant-select-selector span {
     font-size: 16px;
     font-weight: 600;
+    color: black;
   }
 `;
 

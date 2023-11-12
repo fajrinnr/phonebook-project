@@ -10,18 +10,8 @@ import {
 import { Avatar, Button, Dropdown, MenuProps, message } from "antd";
 import { StyledContainer, StyledContainerContact } from "./styled";
 import { gql, useMutation } from "@apollo/client";
-import { useContext } from "react";
-import { ContactContext } from "@/context/updateContactContext";
-
-const DELETE_CONTACT_MUTATION = gql`
-  mutation delete_contact($where: contact_bool_exp!) {
-    delete_contact(where: $where) {
-      returning {
-        id
-      }
-    }
-  }
-`;
+import { DELETE_CONTACT_MUTATION } from "@/graphql/mutations";
+import useMutationDeleteContact from "@/hooks/useMutationDeleteContact";
 
 interface ContactCardProps {
   data: {
@@ -35,6 +25,7 @@ interface ContactCardProps {
   };
   onChangeFav?: () => void;
   onDelete?: () => void;
+  onClick?: () => void;
 }
 
 export default function ContactCard(props: ContactCardProps) {
@@ -42,10 +33,10 @@ export default function ContactCard(props: ContactCardProps) {
     data: { first_name = "", last_name = "", id = 0, phones = [{}] },
     onChangeFav = () => null,
     onDelete = () => null,
+    onClick = () => null,
   } = props;
   const router = useRouter();
-  const { handleDataContact } = useContext(ContactContext);
-  const [deleteContact] = useMutation(DELETE_CONTACT_MUTATION, {
+  const { deleteContact, loading: loadingDelete } = useMutationDeleteContact({
     variables: {
       where: {
         id: {
@@ -64,14 +55,15 @@ export default function ContactCard(props: ContactCardProps) {
 
   const items: MenuProps["items"] = [
     {
-      label: favorited ? "Remove from Favorites" : "Add to Favorites",
+      label: favorited ? "Unfavorite" : "Favorite",
       key: "1",
       icon: favorited ? (
         <StarOutlined style={{ color: "#F5E9A9" }} />
       ) : (
         <StarFilled style={{ color: "#F5E9A9" }} />
       ),
-      onClick: () => {
+      onClick: (e) => {
+        e.domEvent.stopPropagation();
         const favoritesContact = JSON.parse(
           localStorage.getItem("favoritesContact") as string
         );
@@ -97,12 +89,8 @@ export default function ContactCard(props: ContactCardProps) {
       label: "Edit",
       key: "2",
       icon: <EditFilled />,
-      onClick: async () => {
-        await handleDataContact({
-          first_name,
-          last_name,
-          phones,
-        });
+      onClick: async (e) => {
+        e.domEvent.stopPropagation();
         router.push(`/edit-contact/${id}`);
       },
     },
@@ -114,7 +102,9 @@ export default function ContactCard(props: ContactCardProps) {
       key: "3",
       icon: <DeleteFilled />,
       danger: true,
-      onClick: async () => {
+      disabled: loadingDelete,
+      onClick: async (e) => {
+        e.domEvent.stopPropagation();
         try {
           await deleteContact();
           message.success(
@@ -126,7 +116,7 @@ export default function ContactCard(props: ContactCardProps) {
     },
   ];
   return (
-    <StyledContainer>
+    <StyledContainer onClick={onClick}>
       <Avatar
         style={{
           backgroundColor: "#f56a00",
@@ -148,7 +138,11 @@ export default function ContactCard(props: ContactCardProps) {
         </div>
 
         <Dropdown menu={{ items }}>
-          <Button shape="circle" icon={<BarsOutlined />} />
+          <Button
+            shape="circle"
+            icon={<BarsOutlined />}
+            onClick={(e) => e.stopPropagation()}
+          />
         </Dropdown>
       </StyledContainerContact>
     </StyledContainer>

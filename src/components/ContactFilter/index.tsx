@@ -5,7 +5,13 @@ import { StyledContainer, StyledInputSearch, StyledSelect } from "./styled";
 
 type CategoryType = "name" | "phone";
 interface ContactFilter {
-  onSearch: ({ value, category }: { value: string; category: string }) => void;
+  onSearch: ({
+    value,
+    category,
+  }: {
+    value: string;
+    category: CategoryType;
+  }) => void;
   defVal: {
     keyword: string | null;
     category: string | null;

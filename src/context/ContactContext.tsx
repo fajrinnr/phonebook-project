@@ -7,19 +7,25 @@ interface ContactProviderProps {
 }
 
 interface DataContactProps {
-  first_name: string;
-  last_name: string;
-  phones: {
-    number?: string;
-    id?: number;
+  general: {
+    first_name: string;
+    last_name: string;
+    phones: {
+      number?: string;
+      id?: number;
+    }[];
+  }[];
+  favorites: {
+    first_name: string;
+    last_name: string;
+    phones: {
+      number?: string;
+      id?: number;
+    }[];
   }[];
 }
 
-const defaultValueContext: DataContactProps = {
-  first_name: "",
-  last_name: "",
-  phones: [{}],
-};
+const defaultValueContext: DataContactProps = { favorites: [], general: [] };
 
 export const ContactContext = createContext({
   dataContact: defaultValueContext,

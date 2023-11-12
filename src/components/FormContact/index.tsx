@@ -5,6 +5,12 @@ import { CloseCircleFilled } from "@ant-design/icons";
 import { StyledAddConContainer, StyledForm } from "./styled";
 import { gql, useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
+import {
+  ADD_CONTACT_MUTATION,
+  UPDATE_CONTACT_MUTATION,
+} from "@/graphql/mutations";
+import useMutationUpdateContact from "@/hooks/useMutationUpdateContact";
+import useMutationAddContact from "@/hooks/useMutationAddContact";
 
 interface FormContactProps {
   typeForm: "add" | "update";
@@ -27,53 +33,26 @@ interface FormValues {
   }[];
 }
 
-const ADD_CONTACT_MUTATION = gql`
-  mutation insert_contact($objects: [contact_insert_input!]!) {
-    insert_contact(objects: $objects) {
-      returning {
-        first_name
-        last_name
-      }
-    }
-  }
-`;
-
-const UPDATE_CONTACT_MUTATION = gql`
-  mutation update_contact($_set: contact_set_input, $where: contact_bool_exp!) {
-    update_contact(_set: $_set, where: $where) {
-      returning {
-        id
-      }
-    }
-  }
-`;
-
 export default function FormContact(props: FormContactProps) {
   const { typeForm, dataContact, contactId } = props;
   const [form] = Form.useForm();
   const router = useRouter();
-  const [addContact, { loading: loadingAdd }] = useMutation(
-    ADD_CONTACT_MUTATION,
-    {
-      onCompleted: () => {
-        message.success(
-          `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
-        );
-        router.push("/");
-      },
-    }
-  );
-  const [updateContact, { loading: loadingUpdate }] = useMutation(
-    UPDATE_CONTACT_MUTATION,
-    {
-      onCompleted: () => {
-        message.success(
-          `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
-        );
-        router.push("/");
-      },
-    }
-  );
+  const { loading: loadingAdd, addContact } = useMutationAddContact({
+    onCompleted: () => {
+      message.success(
+        `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
+      );
+      router.push("/");
+    },
+  });
+  const { loading: loadingUpdate, updateContact } = useMutationUpdateContact({
+    onCompleted: () => {
+      message.success(
+        `Successfuly add ${values.first_name} ${values.last_name} to new Contact!`
+      );
+      router.push("/");
+    },
+  });
   const [submittable, setSubmittable] = useState(false);
   const values = Form.useWatch([], form);
 
