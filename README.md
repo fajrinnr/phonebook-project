@@ -25,5 +25,5 @@ https://phonebook-project-fajrinnr.vercel.app/
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/phonebook-project.git
+   git clone https://github.com/fajrinnr/phonebook-project.git
    ```
