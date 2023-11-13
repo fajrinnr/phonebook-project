@@ -74,7 +74,9 @@ export default function DetailContactPage({
         <Skeleton loading={loading} active avatar style={{ padding: "20px" }} />
       ) : (
         <>
-          <StyledAvatar size={150}>{contact.first_name[0]}</StyledAvatar>
+          <StyledAvatar size={150} data-testid="test-avatar">
+            {contact.first_name[0]}
+          </StyledAvatar>
           <span className="fullname">
             {`${contact.first_name} ${contact.last_name}`}{" "}
           </span>

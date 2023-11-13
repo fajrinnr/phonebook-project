@@ -46,9 +46,10 @@ export default function Home() {
       },
     },
   });
-  const favoritesArr = JSON.parse(
-    localStorage.getItem("favoritesContact") || "[]"
-  );
+  const favoritesArr =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("favoritesContact") || "[]")
+      : [];
   //#endregion CONSTANTS
 
   //#region HANDLER
@@ -116,7 +117,6 @@ export default function Home() {
                   key={val.id}
                   onChangeFav={refreshContactData}
                   onDelete={refreshContactData}
-                  onClick={() => router.push(`/detail/${val.id}`)}
                 />
               ))}
             </>
@@ -130,7 +130,6 @@ export default function Home() {
                 key={val.id}
                 onChangeFav={refreshContactData}
                 onDelete={refreshContactData}
-                onClick={() => router.push(`/detail/${val.id}`)}
               />
             ))}
           {data?.contact_aggregate.aggregate.count > 10 && (

@@ -24,7 +24,6 @@ interface ContactCardProps {
   };
   onChangeFav?: () => void;
   onDelete?: () => void;
-  onClick?: () => void;
 }
 
 export default function ContactCard(props: ContactCardProps) {
@@ -32,7 +31,6 @@ export default function ContactCard(props: ContactCardProps) {
     data: { first_name = "", last_name = "", id = 0, phones = [{}] },
     onChangeFav = () => null,
     onDelete = () => null,
-    onClick = () => null,
   } = props;
   //#region HOOKS
   const router = useRouter();
@@ -120,7 +118,10 @@ export default function ContactCard(props: ContactCardProps) {
   //#endregion CONSTANTS
 
   return (
-    <StyledContainer onClick={onClick}>
+    <StyledContainer
+      onClick={() => router.push(`/detail/${id}`)}
+      data-testid="test-card"
+    >
       <Avatar
         style={{
           backgroundColor: "#f56a00",

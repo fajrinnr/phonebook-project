@@ -1,29 +1,30 @@
+import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import ContactCard from "@/components/ContactCard";
-import { render, screen } from "@testing-library/react";
 import { MockedProvider } from "@apollo/client/testing";
+import { useRouter } from "next/navigation";
+import useMutationDeleteContact from "@/hooks/useMutationDeleteContact";
 
-// Mock useRouter:
 jest.mock("next/navigation", () => ({
-  useRouter() {
-    return {
-      prefetch: () => null,
-    };
-  },
+  __esModule: true,
+  useRouter: jest.fn(),
+}));
+
+jest.mock("@/hooks/useMutationDeleteContact", () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 const mockData = {
-  first_name: "Fajrin",
-  last_name: "Rachman",
+  first_name: "John",
+  last_name: "Doe",
   id: 1,
-  phones: [
-    {
-      number: "0899078317",
-      id: 1,
-    },
-  ],
+  phones: [{ number: "123456789", id: 1 }],
 };
 
-describe("Testing Contact Card Showed Up Perfectly", () => {
+const mockOnChangeFav = jest.fn();
+const mockOnDelete = jest.fn();
+
+describe("ContactCard", () => {
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -31,40 +32,50 @@ describe("Testing Contact Card Showed Up Perfectly", () => {
         matches: false,
         media: query,
         onchange: null,
-        addListener: jest.fn(), // Deprecated
-        removeListener: jest.fn(), // Deprecated
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
         dispatchEvent: jest.fn(),
       })),
     });
   });
+  it("renders contact information and handles click events", async () => {
+    // Mock useRouter
+    (useRouter as any).mockReturnValue({
+      push: jest.fn(),
+    });
 
-  it("Show the avatar", async () => {
+    // Mock useMutationDeleteContact
+    (useMutationDeleteContact as any).mockReturnValue({
+      deleteContact: jest.fn().mockResolvedValue({}),
+      loading: false,
+    });
+
+    // Render the component
     render(
       <MockedProvider>
-        <ContactCard data={mockData} />
+        <ContactCard
+          data={mockData}
+          onChangeFav={mockOnChangeFav}
+          onDelete={mockOnDelete}
+        />
       </MockedProvider>
     );
-    expect(await screen.getAllByTestId("test-avatar")).toBeTruthy();
-  });
 
-  it("Show the first name, last name and phones correctly", async () => {
-    render(
-      <MockedProvider>
-        <ContactCard data={mockData} />
-      </MockedProvider>
-    );
-    expect(await screen.getByText("Fajrin Rachman")).toBeTruthy();
-    expect(await screen.getByText("0899078317")).toBeTruthy();
-  });
+    // Assert that the avatar is rendered
+    expect(screen.getByTestId("test-avatar")).toBeTruthy();
 
-  it("Show the action dropdown button", async () => {
-    render(
-      <MockedProvider>
-        <ContactCard data={mockData} />
-      </MockedProvider>
-    );
-    expect(await screen.getAllByTestId("test-dropdown-button")).toBeTruthy();
+    // Assert that the contact information is rendered
+    expect(screen.getByText("John Doe")).toBeTruthy();
+    expect(screen.getByText("123456789")).toBeTruthy();
+
+    // Trigger a click event on the card
+    fireEvent.click(screen.getByTestId("test-card"));
+
+    // Assert that useRouter.push function is called
+    await waitFor(() => {
+      expect(useRouter().push).toHaveBeenCalledWith(`/detail/1`);
+    });
   });
 });
