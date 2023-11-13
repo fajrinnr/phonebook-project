@@ -55,7 +55,10 @@ export default function DetailContactPage({
           Cancel
         </Button>
         <h1>Detail Info</h1>
-        <Button type="link" onClick={() => router.push(`/edit/${contact.id}`)}>
+        <Button
+          type="link"
+          onClick={() => router.push(`/edit-contact/${params.id}`)}
+        >
           Edit
         </Button>
       </StyledHeader>
