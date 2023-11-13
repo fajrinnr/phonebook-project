@@ -147,6 +147,7 @@ export default function ContactCard(props: ContactCardProps) {
             shape="circle"
             icon={<BarsOutlined />}
             onClick={(e) => e.stopPropagation()}
+            data-testid="test-dropdown-button"
           />
         </Dropdown>
       </StyledContainerContact>
