@@ -22,7 +22,11 @@ export default function DetailContactPage({
     updated_at: "",
   });
   const router = useRouter();
-  const { data: dataContact, loading } = useQueryGetContact({
+  const {
+    data: dataContact,
+    loading,
+    refetch,
+  } = useQueryGetContact({
     variables: { id: params.id },
   });
   //#endregion HOOKS
@@ -46,6 +50,10 @@ export default function DetailContactPage({
         ),
       });
   }, [contact]);
+
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
   //#endregion LIFECYCLE
 
   return (
