@@ -3,7 +3,7 @@ import { Input, Select, Space } from "antd";
 
 export const StyledContainer = styled(Space.Compact)`
   width: 100%;
-
+  padding: 0 20px;
   .select {
     height: 50px;
   }

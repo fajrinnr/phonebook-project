@@ -1,93 +1,89 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Button, Divider, Skeleton } from "antd";
+import { useRouter } from "next/navigation";
 
-import FormContact from "@/components/FormContact";
 import useQueryGetContact from "@/hooks/useQueryGetContact";
-import { Avatar, Button } from "antd";
+import {
+  StyledAvatar,
+  StyledContainer,
+  StyledHeader,
+  StyledPhonesContainer,
+} from "./styled";
 
 export default function DetailContactPage({
   params,
 }: {
   params: { id: string };
 }) {
-  const {
-    data: dataContact,
-    loading,
-    refetch,
-  } = useQueryGetContact({ variables: { id: params.id } });
+  //#region HOOKS
+  const [formattedDate, setFormattedDate] = useState({
+    created_at: "",
+    updated_at: "",
+  });
+  const router = useRouter();
+  const { data: dataContact, loading } = useQueryGetContact({
+    variables: { id: params.id },
+  });
+  //#endregion HOOKS
 
+  //#region CONSTANTS
+  const { contact_by_pk: contact } = dataContact ?? {};
+  //#endregion CONSTANTS
+
+  //#region LIFECYCLE
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    const options = {
+      dateStyle: "long",
+    } as Intl.DateTimeFormatOptions;
+    if (contact)
+      setFormattedDate({
+        created_at: new Intl.DateTimeFormat("en-US", options).format(
+          new Date(contact.created_at)
+        ),
+        updated_at: new Intl.DateTimeFormat("en-US", options).format(
+          new Date(contact.updated_at)
+        ),
+      });
+  }, [contact]);
+  //#endregion LIFECYCLE
 
   return (
-    <>
+    <StyledContainer>
+      <StyledHeader>
+        <Button type="link" onClick={() => router.back()}>
+          Cancel
+        </Button>
+        <h1>Detail Info</h1>
+        <Button type="link" onClick={() => router.push(`/edit/${contact.id}`)}>
+          Edit
+        </Button>
+      </StyledHeader>
       {loading ? (
-        <div>Loading</div>
+        <Skeleton loading={loading} active avatar style={{ padding: "20px" }} />
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              width: "100%",
-            }}
-          >
-            <Button
-              type="link"
-              // onClick={() => router.back()}
-              style={{ padding: 0, fontSize: "17px", fontWeight: "600" }}
-            >
-              Cancel
-            </Button>
-            <h1 style={{ fontSize: "20px" }}>Detail Info</h1>
-            <Button
-              type="link"
-              style={{ padding: 0, fontSize: "17px", fontWeight: "600" }}
-            >
-              Edit
-            </Button>
-          </div>
-          <Avatar
-            style={{
-              backgroundColor: "#f56a00",
-              verticalAlign: "middle",
-              marginRight: "10px",
-              fontSize: "70px",
-            }}
-            size={150}
-          >
-            {dataContact.contact_by_pk.first_name[0]}
-          </Avatar>
-          <span>
-            {`${dataContact.contact_by_pk.first_name} ${dataContact.contact_by_pk.last_name}`}{" "}
+        <>
+          <StyledAvatar size={150}>{contact.first_name[0]}</StyledAvatar>
+          <span className="fullname">
+            {`${contact.first_name} ${contact.last_name}`}{" "}
           </span>
-          <span>
-            {new Date(dataContact.contact_by_pk.created_at).toLocaleDateString(
-              "en-ID"
+          <span className="date">{formattedDate.created_at}</span>
+          <StyledPhonesContainer>
+            {contact.phones.map((phone: any, i: number) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column" }}>
+                <span style={{ color: "#53585C" }}>
+                  {i < 1 ? "Phone Number" : `Phone Number (${i})`}
+                </span>
+                <span style={{ color: "#fff" }}>{phone.number}</span>
+                <Divider style={{ borderTop: "1px solid #53585C" }} />
+              </div>
+            ))}
+            {contact.updated_at && (
+              <span className="date">{`Last updated by ${formattedDate.updated_at}`}</span>
             )}
-          </span>
-          <div
-            style={{
-              backgroundColor: "#191E22",
-              width: "100%",
-              height: "100vh",
-              borderRadius: "50px 50px 0 0",
-              padding: "50px",
-              marginTop: "20px",
-            }}
-          >
-            sadasdadasd
-          </div>
-        </div>
+          </StyledPhonesContainer>
+        </>
       )}
-    </>
+    </StyledContainer>
   );
 }

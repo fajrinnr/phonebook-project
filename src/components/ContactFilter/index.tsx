@@ -19,12 +19,15 @@ interface ContactFilter {
 }
 
 export default function ContactFilter(props: ContactFilter) {
+  //#region HOOKS
   const [form] = Form.useForm();
   const [category, setCategory] = useState<CategoryType>("name");
   const options = [
     { value: "name", label: "Name" },
     { value: "phone", label: "Phone" },
   ];
+  //#endregion HOOKS
+
   return (
     <Form form={form}>
       <StyledContainer>

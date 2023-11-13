@@ -8,9 +8,8 @@ import {
   BarsOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, MenuProps, message } from "antd";
+
 import { StyledContainer, StyledContainerContact } from "./styled";
-import { gql, useMutation } from "@apollo/client";
-import { DELETE_CONTACT_MUTATION } from "@/graphql/mutations";
 import useMutationDeleteContact from "@/hooks/useMutationDeleteContact";
 
 interface ContactCardProps {
@@ -35,6 +34,7 @@ export default function ContactCard(props: ContactCardProps) {
     onDelete = () => null,
     onClick = () => null,
   } = props;
+  //#region HOOKS
   const router = useRouter();
   const { deleteContact, loading: loadingDelete } = useMutationDeleteContact({
     variables: {
@@ -48,7 +48,9 @@ export default function ContactCard(props: ContactCardProps) {
       router.refresh();
     },
   });
+  //#endregion HOOKS
 
+  //#region CONSTANTS
   const favorited = JSON.parse(
     localStorage.getItem("favoritesContact") || "[]"
   ).includes(id);
@@ -115,6 +117,8 @@ export default function ContactCard(props: ContactCardProps) {
       },
     },
   ];
+  //#endregion CONSTANTS
+
   return (
     <StyledContainer onClick={onClick}>
       <Avatar
@@ -124,6 +128,7 @@ export default function ContactCard(props: ContactCardProps) {
           marginRight: "10px",
         }}
         size={45}
+        data-testid="test-avatar"
       >
         {first_name[0]?.toUpperCase()}
       </Avatar>

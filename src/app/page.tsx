@@ -9,6 +9,7 @@ import StyledPagination from "@/components/Pagination";
 import { ContactContext } from "@/context/ContactContext";
 import useQueryGetContacts from "@/hooks/useQueryGetContacts";
 import { getCategoriesContact } from "@/helpers";
+import { Skeleton } from "antd";
 
 export default function Home() {
   //#region HOOKS
@@ -17,7 +18,10 @@ export default function Home() {
   const { dataContact, handleDataContact } = useContext(ContactContext);
   const { data, loading, refetch } = useQueryGetContacts({
     onCompleted: (value) => {
-      const result = getCategoriesContact(value);
+      const result = getCategoriesContact(
+        value.contact_aggregate.nodes,
+        favoritesArr
+      );
       handleDataContact(result);
     },
   });
@@ -42,13 +46,19 @@ export default function Home() {
       },
     },
   });
+  const favoritesArr = JSON.parse(
+    localStorage.getItem("favoritesContact") || "[]"
+  );
   //#endregion CONSTANTS
 
   //#region HANDLER
   const refreshContactData = async () => {
     try {
       const { data } = await refetch();
-      const result = getCategoriesContact(data);
+      const result = getCategoriesContact(
+        data.contact_aggregate.nodes,
+        favoritesArr
+      );
       handleDataContact(result);
     } catch (error) {
       console.error(error);
@@ -79,7 +89,10 @@ export default function Home() {
           const whereCondition = getVariableQuery(res.value)[res.category];
           try {
             const { data } = await refetch({ where: whereCondition });
-            const result = getCategoriesContact(data);
+            const result = getCategoriesContact(
+              data.contact_aggregate.nodes,
+              favoritesArr
+            );
             handleDataContact(result);
             if (res.value) {
               router.push(`/?keyword=${res.value}&category=${res.category}`);
@@ -91,8 +104,9 @@ export default function Home() {
           }
         }}
       />
+
       {!loading ? (
-        <>
+        <div style={{ padding: "20px" }}>
           {dataContact.favorites?.length > 0 && (
             <>
               Favorites
@@ -116,6 +130,7 @@ export default function Home() {
                 key={val.id}
                 onChangeFav={refreshContactData}
                 onDelete={refreshContactData}
+                onClick={() => router.push(`/detail/${val.id}`)}
               />
             ))}
           {data?.contact_aggregate.aggregate.count > 10 && (
@@ -134,9 +149,14 @@ export default function Home() {
               }}
             />
           )}
-        </>
+        </div>
       ) : (
-        <p>Loading</p>
+        <div style={{ padding: "20px" }}>
+          <Skeleton loading={loading} active avatar />
+          <Skeleton loading={loading} active avatar />
+          <Skeleton loading={loading} active avatar />
+          <Skeleton loading={loading} active avatar />
+        </div>
       )}
     </div>
   );

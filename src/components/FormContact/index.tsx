@@ -2,13 +2,9 @@
 import { useEffect, useState } from "react";
 import { Avatar, Button, Form, Input, message } from "antd";
 import { CloseCircleFilled } from "@ant-design/icons";
-import { StyledAddConContainer, StyledForm } from "./styled";
-import { gql, useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
-import {
-  ADD_CONTACT_MUTATION,
-  UPDATE_CONTACT_MUTATION,
-} from "@/graphql/mutations";
+
+import { StyledAddConContainer, StyledForm } from "./styled";
 import useMutationUpdateContact from "@/hooks/useMutationUpdateContact";
 import useMutationAddContact from "@/hooks/useMutationAddContact";
 
@@ -35,6 +31,7 @@ interface FormValues {
 
 export default function FormContact(props: FormContactProps) {
   const { typeForm, dataContact, contactId } = props;
+  //#region HOOKS
   const [form] = Form.useForm();
   const router = useRouter();
   const { loading: loadingAdd, addContact } = useMutationAddContact({
@@ -55,18 +52,9 @@ export default function FormContact(props: FormContactProps) {
   });
   const [submittable, setSubmittable] = useState(false);
   const values = Form.useWatch([], form);
+  //#endregion HOOKS
 
-  useEffect(() => {
-    form.validateFields({ validateOnly: true }).then(
-      () => {
-        setSubmittable(true);
-      },
-      () => {
-        setSubmittable(false);
-      }
-    );
-  }, [form, values]);
-
+  //#region CONSTANTS
   const typeFormValue = {
     add: {
       titlePage: "Add Contact",
@@ -113,6 +101,20 @@ export default function FormContact(props: FormContactProps) {
         }),
     },
   };
+  //#endregion CONSTANTS
+
+  //#region LIFECYCLE
+  useEffect(() => {
+    form.validateFields({ validateOnly: true }).then(
+      () => {
+        setSubmittable(true);
+      },
+      () => {
+        setSubmittable(false);
+      }
+    );
+  }, [form, values]);
+  //#endregion LIFECYCLE
 
   return (
     <StyledForm
@@ -123,21 +125,14 @@ export default function FormContact(props: FormContactProps) {
       }}
     >
       <StyledAddConContainer>
-        <Button
-          type="link"
-          onClick={() => router.back()}
-          style={{ padding: 0, fontSize: "17px", fontWeight: "600" }}
-        >
+        <Button type="link" onClick={() => router.back()}>
           Cancel
         </Button>
-        <h1 style={{ fontSize: "20px" }}>
-          {typeFormValue[typeForm].titlePage}
-        </h1>
+        <h1>{typeFormValue[typeForm].titlePage}</h1>
         <Button
           type="link"
           htmlType="submit"
           disabled={!submittable}
-          style={{ padding: 0, fontSize: "17px", fontWeight: "600" }}
           loading={typeFormValue[typeForm].loadingSubmit}
         >
           {typeFormValue[typeForm].buttonSubmit}
@@ -223,15 +218,24 @@ export default function FormContact(props: FormContactProps) {
             ))}
 
             {!typeFormValue[typeForm].disablePhoneNumber && (
-              <Button
-                type="primary"
-                onClick={() => add()}
-                block
-                size="large"
-                style={{ backgroundColor: "#007BFE !important" }}
+              <div
+                style={{
+                  padding: "0 20px",
+                }}
               >
-                + Add Phone Number
-              </Button>
+                <Button
+                  type="primary"
+                  onClick={() => add()}
+                  block
+                  size="large"
+                  style={{
+                    backgroundColor: "#007BFE !important",
+                    padding: "0 20px",
+                  }}
+                >
+                  + Add Phone Number
+                </Button>
+              </div>
             )}
           </div>
         )}

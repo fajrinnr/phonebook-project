@@ -4,15 +4,19 @@ import { Form } from "antd";
 export const StyledAddConContainer = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin: 20px;
 
   h1 {
     font-family: Poppins Bold;
     color: #ffffff;
+    font-size: 20px;
   }
 
   button {
     color: #007bfe;
+    padding: 0;
+    font-size: 17px;
+    font-weight: 600;
   }
   button:disabled {
     color: #ffffff;
@@ -23,6 +27,10 @@ export const StyledAddConContainer = styled.div`
 export const StyledForm = styled(Form)`
   .ant-form-item-control-input-content {
     display: flex;
+  }
+
+  .ant-form-item {
+    padding: 0 20px;
   }
   label {
     color: #ffffff !important;
